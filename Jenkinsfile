@@ -1,4 +1,4 @@
-popline{
+pipline{
 	agent any
 	
 	environment{

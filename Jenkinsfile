@@ -26,15 +26,8 @@ pipeline {
                 bat 'mvn clean package -DskipTests'
             }
         }
-
-        stage('Test') {
-            steps {
-                echo '🧪 Running Cucumber Tests...'
-                bat 'mvn test'
-            }
-        }
-
-        stage('Database Setup') {
+		
+		  stage('Database Setup') {
 		    steps {
 		        echo '🗄️ Starting MySQL container...'
 		
@@ -56,6 +49,20 @@ pipeline {
 		    }
 		}
 
+		
+       
+
+       /* stage('Database Setup') {
+            steps {
+                echo '🗄️ Ensuring MySQL is ready...'
+                bat """
+                    "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe" -u%DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS springonetomany;"
+                """
+            }
+        }*/
+     
+		
+
 
         stage('Deploy') {
 		    steps {
@@ -71,7 +78,13 @@ pipeline {
 		        '''
 		    }
 		}
-
+		
+		 stage('Test') {
+            steps {
+                echo '🧪 Running Cucumber Tests...'
+                bat 'mvn test'
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
@@ -85,7 +98,16 @@ pipeline {
             }
         }
 
-    
+        /*stage('Run Docker Container') {
+            steps {
+                echo "▶️ Running Docker container on host port 8081..."
+                bat """
+                    docker stop player-team-cucumber || true
+                    docker rm player-team-cucumber || true
+                    docker run -d --name player-team-cucumber -p 8081:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
+                """
+            }
+        }*/
         stage('Run Docker Container') {
 		    steps {
 		        echo "▶️ Running Spring Boot Docker container with MySQL..."

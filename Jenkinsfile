@@ -36,22 +36,25 @@ pipeline {
 
         stage('Database Setup') {
 		    steps {
-		        echo '🗄️ Ensuring MySQL is ready...'
+		        echo '🗄️ Starting MySQL container...'
 		
-		        // Pull MySQL image (if not exists) and run container
-		        bat '''
-		        REM Start MySQL container (if not already running)
-		        docker run -d --name mysql-server -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:8.0 || echo "MySQL container already running"
+		        bat """
+		        REM Stop/remove any previous MySQL container
+		        docker stop mysql-server || true
+		        docker rm mysql-server || true
 		
-		        REM Wait a few seconds for MySQL to be ready
-		        timeout /t 10
+		        REM Run MySQL container with root password and auto-create database
+		        docker run -d --name mysql-server ^
+		            -e MYSQL_ROOT_PASSWORD=root ^
+		            -e MYSQL_DATABASE=springonetomany ^
+		            -p 3306:3306 ^
+		            mysql:8.0
 		
-		        REM Create database inside container
-		        docker exec mysql-server mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS springonetomany;"
-		        '''
+		        REM Wait for MySQL to fully initialize
+		        timeout /t 15
+		        """
 		    }
 		}
-		
 
 
         stage('Deploy') {

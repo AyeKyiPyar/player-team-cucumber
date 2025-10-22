@@ -8,6 +8,7 @@ pipeline {
         DB_PASS = 'root'
         APP_JAR = 'target/player-team-cucumber-0.0.1-SNAPSHOT.jar'
         DOCKER_REPO = 'player-team-cucumber'
+        APP_PORT = '9090'  // ✅ Changed from 8080 to 9090 to avoid Jenkins conflict
     }
 
     stages {
@@ -44,17 +45,17 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo '🚀 Deploying Spring Boot App...'
+                echo "🚀 Deploying Spring Boot App on port ${APP_PORT}..."
 
-                // Stop any previous instance on port 8080
-                bat '''
-                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8080') do taskkill /PID %%a /F
-                '''
+                // Stop any previous instance on the new port
+                bat """
+                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%APP_PORT%') do taskkill /PID %%a /F
+                """
 
-                // Run the jar with DB connection
+                // Run the jar with DB connection and new port
                 bat """
                     start cmd /c java -jar %APP_JAR% ^
-                    --server.port=8080 ^
+                    --server.port=%APP_PORT% ^
                     --spring.datasource.url=%DB_URL% ^
                     --spring.datasource.username=%DB_USER% ^
                     --spring.datasource.password=%DB_PASS%
@@ -76,7 +77,7 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                echo "▶️ Running Docker container (port 8081)..."
+                echo "▶️ Running Docker container on host port 8081..."
                 bat """
                     docker stop player-team-cucumber || true
                     docker rm player-team-cucumber || true
@@ -91,7 +92,9 @@ pipeline {
             echo "✅ Pipeline finished."
         }
         success {
-            echo "🎉 Pipeline succeeded! App running at http://localhost:8081/"
+            echo "🎉 Pipeline succeeded!"
+            echo "🌐 App running on: http://localhost:${APP_PORT}/"
+            echo "🐋 Docker container available at: http://localhost:8081/"
         }
         failure {
             echo "❌ Pipeline failed. Check logs above."

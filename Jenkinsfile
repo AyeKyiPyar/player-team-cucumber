@@ -43,25 +43,21 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                echo "🚀 Deploying Spring Boot App on port ${APP_PORT}..."
+       stage('Deploy') {
+		    steps {
+		        echo '🚀 Deploying Spring Boot App on port 9090...'
+		        bat '''
+		        echo Checking if port 9090 is in use...
+		        for /f "tokens=5" %%a in ('netstat -ano ^| findstr :9090') do (
+		            echo Killing process %%a using port 9090...
+		            taskkill /PID %%a /F
+		        )
+		        echo Port 9090 cleanup done (or not needed).
+		        exit /b 0
+		        '''
+		    }
+		}
 
-                // Stop any previous instance on the new port
-                bat """
-                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%APP_PORT%') do taskkill /PID %%a /F
-                """
-
-                // Run the jar with DB connection and new port
-                bat """
-                    start cmd /c java -jar %APP_JAR% ^
-                    --server.port=%APP_PORT% ^
-                    --spring.datasource.url=%DB_URL% ^
-                    --spring.datasource.username=%DB_USER% ^
-                    --spring.datasource.password=%DB_PASS%
-                """
-            }
-        }
 
         stage('Build Docker Image') {
             steps {

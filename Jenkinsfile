@@ -35,15 +35,26 @@ pipeline {
         }
 
         stage('Database Setup') {
-            steps {
-                echo '🗄️ Ensuring MySQL is ready...'
-                bat """
-                    "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe" -u%DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS springonetomany;"
-                """
-            }
-        }
+		    steps {
+		        echo '🗄️ Ensuring MySQL is ready...'
+		
+		        // Pull MySQL image (if not exists) and run container
+		        bat '''
+		        REM Start MySQL container (if not already running)
+		        docker run -d --name mysql-server -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:8.0 || echo "MySQL container already running"
+		
+		        REM Wait a few seconds for MySQL to be ready
+		        timeout /t 10
+		
+		        REM Create database inside container
+		        docker exec mysql-server mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS springonetomany;"
+		        '''
+		    }
+		}
+		
 
-       stage('Deploy') {
+
+        stage('Deploy') {
 		    steps {
 		        echo '🚀 Deploying Spring Boot App on port 9090...'
 		        bat '''
@@ -71,16 +82,40 @@ pipeline {
             }
         }
 
+    
         stage('Run Docker Container') {
-            steps {
-                echo "▶️ Running Docker container on host port 8081..."
-                bat """
-                    docker stop player-team-cucumber || true
-                    docker rm player-team-cucumber || true
-                    docker run -d --name player-team-cucumber -p 8081:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
-                """
-            }
-        }
+		    steps {
+		        echo "▶️ Running Spring Boot Docker container with MySQL..."
+		
+		        bat """
+		        REM Stop and remove existing containers if they exist
+		        docker stop player-team-cucumber || true
+		        docker rm player-team-cucumber || true
+		        docker stop mysql-server || true
+		        docker rm mysql-server || true
+		
+		        REM Run MySQL container
+		        docker run -d --name mysql-server ^
+		            -e MYSQL_ROOT_PASSWORD=root ^
+		            -e MYSQL_DATABASE=springonetomany ^
+		            -p 3306:3306 ^
+		            mysql:8.0
+		
+		        REM Wait a few seconds for MySQL to initialize
+		        timeout /t 10
+		
+		        REM Run Spring Boot container, link to MySQL container
+		        docker run -d --name player-team-cucumber ^
+		            --link mysql-server:mysql ^
+		            -p 8081:8080 ^
+		            -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/springonetomany ^
+		            -e SPRING_DATASOURCE_USERNAME=root ^
+		            -e SPRING_DATASOURCE_PASSWORD=root ^
+		            ${DOCKER_REPO}:${env.IMAGE_TAG}
+		        """
+		    }
+		}
+
     }
 
     post {

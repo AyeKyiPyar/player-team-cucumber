@@ -4,6 +4,7 @@ pipeline {
     environment {
         REPO_URL = 'https://github.com/AyeKyiPyar/player-team-cucumber.git'
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+        APP_JAR = 'target/player-team-cucumber-0.0.1-SNAPSHOT.jar'
     }
 
     stages {

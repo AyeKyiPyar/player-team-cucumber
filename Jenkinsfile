@@ -34,7 +34,19 @@ pipeline {
                 bat 'powershell -Command "Start-Sleep -Seconds 20"'
             }
         }
+    stage('Run Cucumber Tests') {
+            steps {
+                echo 'Running Cucumber tests...'
+                // Run tests inside the Jenkins workspace
+                bat 'mvn test -Dcucumber.options="--plugin json:target/cucumber.json"'
+            }
+        }
 
+        stage('Publish Cucumber Results') {
+            steps {
+                cucumber buildStatus: 'UNSTABLE', jsonReportDirectory: 'target', fileIncludePattern: 'cucumber.json'
+            }
+        }
       
     }
 

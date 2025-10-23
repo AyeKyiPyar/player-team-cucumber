@@ -1,13 +1,8 @@
-version: "3.9"
-
-networks:
-  akpsnetwork:
-    external: true   # 👈 tells Docker Compose to use your existing network
-
 services:
   mysql_db:
     image: mysql:latest
     container_name: mysql_db
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: springonetomany
@@ -15,12 +10,18 @@ services:
       - "3306:3306"
     networks:
       - akpsnetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   player-team-cucumber-app:
     image: player-team-cucumber:latest
     container_name: player-team-cucumber-app
     depends_on:
-      - mysql_db
+      mysql_db:
+        condition: service_healthy
     ports:
       - "7074:8080"
     networks:
@@ -29,3 +30,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql_db:3306/springonetomany
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+
+networks:
+  akpsnetwork:
+    external: true

@@ -28,24 +28,20 @@ public class TeamStepsDefinition
     private Map<String, Object> teamJson;
 
     // -------- Get all teams --------
-//    @Given("user send a GET request to {string}")
-//    public void user_send_get_request(String endpoint) 
-//    {
-//        response = RestAssured.get(baseUrl + endpoint);
-//    }
-//
-//    @Then("the response status should be {int}")
-//    public void the_response_status_should_be(Integer statusCode) 
-//    {
-//        assertThat(response.getStatusCode(), is(statusCode));
-//    }
-//
-//    @Then("the response should contain a list of teams")
-//    public void the_response_should_contain_list_of_teams() 
-//    {
-//        // assuming the response is a JSON array
-//        assertThat(response.jsonPath().getList("$"), is(not(empty())));
-//    }
+    @Given("user send a GET request to {string}")
+    public void user_send_get_request(String endpoint) 
+    {
+        response = RestAssured.get(baseUrl + endpoint);
+    }
+
+   
+
+    @Then("the response should contain a list of teams")
+    public void the_response_should_contain_list_of_teams() 
+    {
+        // assuming the response is a JSON array
+        assertThat(response.jsonPath().getList("$"), is(not(empty())));
+    }
 
     // -------- Add a new team --------
     @Given("user have a team JSON")

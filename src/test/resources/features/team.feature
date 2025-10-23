@@ -9,5 +9,10 @@ Feature: Team management
     When user send a POST request to "/team/add"
     Then the response status should be 200
     And the response should contain the team details
+    
+  Scenario: Get all teams
+	Given user send a GET request to "/team/"
+	Then the response status should be 200
+	And the response should contain a list of teams
 
  

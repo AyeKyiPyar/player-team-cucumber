@@ -24,15 +24,30 @@ pipeline {
 
      
 
-        stage('Deploy') {
+       stage('Deploy') {
             steps {
                 echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
-                // Stop old containers
-                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} down"
+                // Stop old containers (ignore errors)
+                bat 'docker-compose -f %DOCKER_COMPOSE_FILE% down || exit 0'
                 // Build images and start containers
-                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --build"
-               // Wait for MySQL to initialize
-                bat 'powershell -Command "Start-Sleep -Seconds 20"'
+                bat 'docker-compose -f %DOCKER_COMPOSE_FILE% up -d --build'
+
+                // Wait for MySQL to be ready
+                echo '⏳ Waiting for MySQL to be fully initialized...'
+                bat '''
+                powershell -Command "
+                $maxRetries = 15;
+                $retry = 0;
+                do {
+                    try {
+                        docker exec mysql_db mysqladmin ping -uroot -proot -h localhost > $null 2>&1
+                        $status = $LASTEXITCODE
+                    } catch { $status = 1 }
+                    if ($status -ne 0) { Start-Sleep -Seconds 5; $retry++ }
+                } while ($status -ne 0 -and $retry -lt $maxRetries);
+                if ($status -ne 0) { exit 1 }
+                "
+                '''
             }
         }
     stage('Run Cucumber Tests') {

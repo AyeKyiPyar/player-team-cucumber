@@ -8,7 +8,7 @@ pipeline {
         DB_PASS = 'root'
         APP_JAR = 'target/player-team-cucumber-0.0.1-SNAPSHOT.jar'
         DOCKER_REPO = 'player-team-cucumber'
-        APP_PORT = '9090'  // ✅ Changed from 8080 to 9090 to avoid Jenkins conflict
+        APP_PORT = '9090'  // ✅ avoid Jenkins port conflict
     }
 
     stages {
@@ -26,63 +26,33 @@ pipeline {
                 bat 'mvn clean package -DskipTests'
             }
         }
-		
-		  stage('Database Setup') {
-		    steps {
-		        echo '🗄️ Starting MySQL container...'
-		
-		        bat """
-		        REM Stop/remove any previous MySQL container
-		        docker stop mysql-server || true
-		        docker rm mysql-server || true
-		
-		        REM Run MySQL container with root password and auto-create database
-		        docker run -d --name mysql-server ^
-		            -e MYSQL_ROOT_PASSWORD=root ^
-		            -e MYSQL_DATABASE=springonetomany ^
-		            -p 3306:3306 ^
-		            mysql:8.0
-		
-		        REM Wait for MySQL to fully initialize
-		        timeout /t 15
-		        """
-		    }
-		}
 
-		
-       
-
-       /* stage('Database Setup') {
+        stage('Unit & Cucumber Tests') {
             steps {
-                echo '🗄️ Ensuring MySQL is ready...'
-                bat """
-                    "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe" -u%DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS springonetomany;"
-                """
-            }
-        }*/
-     
-		
-
-
-        stage('Deploy') {
-		    steps {
-		        echo '🚀 Deploying Spring Boot App on port 9090...'
-		        bat '''
-		        echo Checking if port 9090 is in use...
-		        for /f "tokens=5" %%a in ('netstat -ano ^| findstr :9090') do (
-		            echo Killing process %%a using port 9090...
-		            taskkill /PID %%a /F
-		        )
-		        echo Port 9090 cleanup done (or not needed).
-		        exit /b 0
-		        '''
-		    }
-		}
-		
-		 stage('Test') {
-            steps {
-                echo '🧪 Running Cucumber Tests...'
+                echo '🧪 Running Cucumber + Unit Tests...'
                 bat 'mvn test'
+            }
+        }
+
+        stage('Start MySQL Container') {
+            steps {
+                echo '🗄️ Starting MySQL container...'
+
+                bat """
+                REM Stop/remove any previous MySQL container
+                docker stop mysql-server || echo No previous MySQL container
+                docker rm mysql-server || echo No previous MySQL container
+
+                REM Run MySQL container
+                docker run -d --name mysql-server ^
+                    -e MYSQL_ROOT_PASSWORD=root ^
+                    -e MYSQL_DATABASE=springonetomany ^
+                    -p 3306:3306 ^
+                    mysql:8.0
+
+                REM Wait for MySQL to fully initialize
+                timeout /t 15
+                """
             }
         }
 
@@ -98,62 +68,49 @@ pipeline {
             }
         }
 
-        /*stage('Run Docker Container') {
+        stage('Run Application Container') {
             steps {
-                echo "▶️ Running Docker container on host port 8081..."
+                echo "▶️ Running Spring Boot Docker container linked with MySQL..."
                 bat """
-                    docker stop player-team-cucumber || true
-                    docker rm player-team-cucumber || true
-                    docker run -d --name player-team-cucumber -p 8081:8080 ${DOCKER_REPO}:${env.IMAGE_TAG}
+                REM Stop/remove old containers
+                docker stop player-team-cucumber || echo No existing app container
+                docker rm player-team-cucumber || echo No existing app container
+
+                REM Wait for MySQL to stabilize
+                timeout /t 10
+
+                REM Run Spring Boot container linked to MySQL
+                docker run -d --name player-team-cucumber ^
+                    --link mysql-server:mysql ^
+                    -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/springonetomany ^
+                    -e SPRING_DATASOURCE_USERNAME=root ^
+                    -e SPRING_DATASOURCE_PASSWORD=root ^
+                    -p 9090:8080 ^
+                    ${DOCKER_REPO}:${env.IMAGE_TAG}
                 """
             }
-        }*/
-        stage('Run Docker Container') {
-		    steps {
-		        echo "▶️ Running Spring Boot Docker container with MySQL..."
-		
-		        bat """
-		        REM Stop and remove existing containers if they exist
-		        docker stop player-team-cucumber || true
-		        docker rm player-team-cucumber || true
-		        docker stop mysql-server || true
-		        docker rm mysql-server || true
-		
-		        REM Run MySQL container
-		        docker run -d --name mysql-server ^
-		            -e MYSQL_ROOT_PASSWORD=root ^
-		            -e MYSQL_DATABASE=springonetomany ^
-		            -p 3306:3306 ^
-		            mysql:8.0
-		
-		        REM Wait a few seconds for MySQL to initialize
-		        timeout /t 10
-		
-		        REM Run Spring Boot container, link to MySQL container
-		        docker run -d --name player-team-cucumber ^
-		            --link mysql-server:mysql ^
-		            -p 8081:8080 ^
-		            -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/springonetomany ^
-		            -e SPRING_DATASOURCE_USERNAME=root ^
-		            -e SPRING_DATASOURCE_PASSWORD=root ^
-		            ${DOCKER_REPO}:${env.IMAGE_TAG}
-		        """
-		    }
-		}
+        }
 
+        stage('Verify Application') {
+            steps {
+                echo '🔍 Verifying that the app is running...'
+                bat 'timeout /t 10 /nobreak'
+                bat 'curl -f http://localhost:9090/actuator/health || echo "App not reachable"'
+            }
+        }
     }
 
     post {
         always {
-            echo "✅ Pipeline finished."
+            echo "✅ Pipeline finished. Listing Docker containers..."
+            bat 'docker ps -a'
         }
         success {
             echo "🎉 Pipeline succeeded!"
-            echo "🌐 App running on: http://localhost:${APP_PORT}/"
-            echo "🐋 Docker container available at: http://localhost:8081/"
+            echo "🌐 Application URL: http://localhost:${APP_PORT}/"
         }
         failure {
-            echo "❌ Pipeline failed. Check logs above."
+            echo "❌ Pipeline failed. Check logs above for errors."
         }
     }
 }

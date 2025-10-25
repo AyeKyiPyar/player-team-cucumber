@@ -27,21 +27,6 @@ public class TeamStepsDefinition
    // private String teamJson;
     private Map<String, Object> teamJson;
 
-    // -------- Get all teams --------
-    @Given("user send a GET request to {string}")
-    public void user_send_get_request(String endpoint) 
-    {
-        response = RestAssured.get(baseUrl + endpoint);
-    }
-
-   
-
-    @Then("the response should contain a list of teams")
-    public void the_response_should_contain_list_of_teams() 
-    {
-        // assuming the response is a JSON array
-        assertThat(response.jsonPath().getList("$"), is(not(empty())));
-    }
 
     // -------- Add a new team --------
     @Given("user have a team JSON")
@@ -79,20 +64,5 @@ public class TeamStepsDefinition
     	 assertThat(response.jsonPath().getString("country"), equalTo(teamJson.get("country")));
     }
 
-    // -------- Search teams --------
-//    @Given("user send a GET request to {string}")
-//    public void user_send_get_request_with_query(String endpoint) 
-//    {
-//        response = RestAssured.get(baseUrl + endpoint);
-//    }
-//
-//    @Then("the response should contain search results")
-//    public void the_response_should_contain_search_results() 
-//    {
-//        assertThat(response.jsonPath().getList("$"), is(not(empty())));
-//        // optionally, check that at least one team matches keyword
-//        boolean containsKeyword = response.jsonPath().getList("name").stream()
-//                .anyMatch(name -> ((String) name).toLowerCase().contains("juventus"));
-//        assertThat(containsKeyword, is(true));
-//    }
+   
 }

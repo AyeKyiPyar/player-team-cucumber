@@ -46,7 +46,7 @@ pipeline {
                 // Use HTML publisher instead of 'cucumber' step
                 publishHTML(target: [
                     reportDir: 'target/cucumber-reports',
-                    reportFiles: 'cucumber.json',
+                    reportFiles: 'report.html',
                     reportName: 'Cucumber Test Report',
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,

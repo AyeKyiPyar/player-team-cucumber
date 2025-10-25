@@ -27,7 +27,7 @@ pipeline {
         stage('Start Test Environment') {
             steps {
                 echo '⚙️ Starting MySQL container for Cucumber tests...'
-                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d mysql"
+                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d mysql_db"
                 bat 'powershell -Command "Start-Sleep -Seconds 20"' // wait for MySQL
             }
         }

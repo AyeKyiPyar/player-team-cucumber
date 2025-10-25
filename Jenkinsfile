@@ -36,7 +36,7 @@ pipeline {
             }
         }
       
-    }
+    
      stage('Deploy') {
                 steps {
                     echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
@@ -48,7 +48,7 @@ pipeline {
                     bat 'powershell -Command "Start-Sleep -Seconds 20"'
                 }
             }
-    
+    }
 
     post {
         always {

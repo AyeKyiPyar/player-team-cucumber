@@ -22,19 +22,7 @@ pipeline {
             }
         }
 
-     
-     stage('Deploy') {
-                steps {
-                    echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
-                    // Stop old containers
-                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} down"
-                    // Build images and start containers
-                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --build"
-                   // Wait for MySQL to initialize
-                    bat 'powershell -Command "Start-Sleep -Seconds 20"'
-                }
-            }
-    stage('Run Cucumber Tests') {
+     stage('Run Cucumber Tests') {
             steps {
                 echo 'Running Cucumber tests...'
                 // Run tests inside the Jenkins workspace
@@ -49,6 +37,18 @@ pipeline {
         }
       
     }
+     stage('Deploy') {
+                steps {
+                    echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
+                    // Stop old containers
+                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} down"
+                    // Build images and start containers
+                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --build"
+                   // Wait for MySQL to initialize
+                    bat 'powershell -Command "Start-Sleep -Seconds 20"'
+                }
+            }
+    
 
     post {
         always {

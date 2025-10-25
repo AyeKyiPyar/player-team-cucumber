@@ -40,20 +40,7 @@ pipeline {
             }
         }
 
-        stage('Publish Cucumber Results') {
-            steps {
-                echo '📊 Publishing Cucumber results...'
-                // Use HTML publisher instead of 'cucumber' step
-                publishHTML(target: [
-                    reportDir: 'target/cucumber-reports',
-                    reportFiles: 'report.html',
-                    reportName: 'Cucumber Test Report',
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true
-                ])
-            }
-        }
+       
 
         stage('Build & Deploy App') {
             steps {

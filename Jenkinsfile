@@ -4,10 +4,12 @@ pipeline {
     environment {
         REPO_URL = 'https://github.com/AyeKyiPyar/player-team-cucumber.git'
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+        APP_CONTAINER = 'player-team-cucumber-app'
         APP_JAR = 'target/player-team-cucumber-0.0.1-SNAPSHOT.jar'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo '📦 Cloning repository...'
@@ -22,32 +24,45 @@ pipeline {
             }
         }
 
-     stage('Run Cucumber Tests') {
+        stage('Start Test Environment') {
             steps {
-                echo 'Running Cucumber tests...'
-                // Run tests inside the Jenkins workspace
-                bat 'mvn test -Dcucumber.options="--plugin json:target/cucumber.json"'
+                echo '⚙️ Starting MySQL container for Cucumber tests...'
+                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d mysql"
+                bat 'powershell -Command "Start-Sleep -Seconds 20"' // wait for MySQL
+            }
+        }
+
+        stage('Run Cucumber Tests') {
+            steps {
+                echo '🧪 Running Cucumber tests inside container...'
+                // Run tests inside the Spring Boot app container
+                bat "docker exec ${APP_CONTAINER} mvn test -Dcucumber.options='--plugin json:target/cucumber.json'"
             }
         }
 
         stage('Publish Cucumber Results') {
             steps {
-                cucumber buildStatus: 'UNSTABLE', jsonReportDirectory: 'target', fileIncludePattern: 'cucumber.json'
+                echo '📊 Publishing Cucumber results...'
+                // Use HTML publisher instead of 'cucumber' step
+                publishHTML(target: [
+                    reportDir: 'target/cucumber-reports',
+                    reportFiles: 'cucumber.json',
+                    reportName: 'Cucumber Test Report',
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
+                ])
             }
         }
-      
-    
-     stage('Deploy') {
-                steps {
-                    echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
-                    // Stop old containers
-                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} down"
-                    // Build images and start containers
-                    bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --build"
-                   // Wait for MySQL to initialize
-                    bat 'powershell -Command "Start-Sleep -Seconds 20"'
-                }
+
+        stage('Build & Deploy App') {
+            steps {
+                echo '🚀 Deploying Spring Boot app with MySQL using Docker Compose...'
+                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} down"
+                bat "docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --build"
+                bat 'powershell -Command "Start-Sleep -Seconds 20"' // wait for services
             }
+        }
     }
 
     post {

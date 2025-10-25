@@ -35,8 +35,8 @@ pipeline {
         stage('Run Cucumber Tests') {
             steps {
                 echo '🧪 Running Cucumber tests inside container...'
-                // Run tests inside the Spring Boot app container
-                bat "docker exec ${APP_CONTAINER} mvn test -Dcucumber.options='--plugin json:target/cucumber.json'"
+                // Run tests outside the Spring Boot app container
+                 bat 'mvn test -Dcucumber.options="--plugin json:target/cucumber.json"'
             }
         }
 
